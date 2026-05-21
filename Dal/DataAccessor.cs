@@ -91,6 +91,24 @@ namespace NetworkProgrammingP47.Dal
             }
         }
 
+        public bool IsEmailUsedByAnotherUser(String email, Guid userId)
+        {
+            String sql = "SELECT COUNT(*) FROM Users u WHERE u.Email = @Email AND u.Id <> @Id";
+            using SqlCommand cmd = new(sql, connection);
+            cmd.Parameters.AddWithValue("@Email", email);
+            cmd.Parameters.AddWithValue("@Id", userId);
+
+            try
+            {
+                return (int)cmd.ExecuteScalar()! > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
+            }
+        }
+
         public UserEntity? Authenticate(String email, String password)
         {
             /* Оскільки пароль не зберігається у БД, тільки DK, ми не можемо
@@ -138,6 +156,48 @@ namespace NetworkProgrammingP47.Dal
 
             try { cmd.ExecuteNonQuery(); }
             catch(Exception ex) { Console.WriteLine( ex.Message ); throw; }
+        }
+
+        public void UpdatePassword(UserEntity userEntity, String newPassword)
+        {
+            String sql = "UPDATE Users SET Dk = @Dk WHERE Id = @Id";
+            String dk = KdfService.Dk(newPassword, userEntity.Id.ToString());
+
+            using SqlCommand cmd = new(sql, connection);
+            cmd.Parameters.AddWithValue("@Dk", dk);
+            cmd.Parameters.AddWithValue("@Id", userEntity.Id);
+
+            try
+            {
+                cmd.ExecuteNonQuery();
+                userEntity.Dk = dk;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
+            }
+        }
+
+        public void UpdateUserData(UserEntity userEntity, String name, String email)
+        {
+            String sql = "UPDATE Users SET Name = @Name, Email = @Email WHERE Id = @Id";
+            using SqlCommand cmd = new(sql, connection);
+            cmd.Parameters.AddWithValue("@Name", name);
+            cmd.Parameters.AddWithValue("@Email", email);
+            cmd.Parameters.AddWithValue("@Id", userEntity.Id);
+
+            try
+            {
+                cmd.ExecuteNonQuery();
+                userEntity.Name = name;
+                userEntity.Email = email;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
+            }
         }
 
         public String? ResetPassword(UserEntity userEntity, String name)
